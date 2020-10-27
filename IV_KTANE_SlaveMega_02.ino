@@ -6,12 +6,23 @@
 //SLAVE #1 : AFFICHEUR DIGIT + POTENTIOMETRE
 //Branchements :
 
- /** de 2 à 8 : pin A,B,C,D,E,G,F
- * de 9 à 12 : pin COM1,COM2,COM3,COM4
- * sur 13 : pin dp
- * sur A1 : potentiometre
- * sur A4 : lien MASTER-SLAVE
- * sur A5 : lien SLAVE-MASTER
+ /** 
+ * de 2 à 5 : Led Rouge/Jaune/Verte/Bleue du Simon's Says
+ * de 6 à 9 : Boutons Rouge/Jaune/Verte/Bleue du Simon's Says
+ * sur 10 : Buzzer du Simon's Says 
+ * de 14 à 16 : Led RGB du Button
+ * sur 17 : Bouton du Button
+ * de 18 à 23 : Fils du Wire
+ * de 24 à 27 : Boutons du Keypad
+ * de 28 à 33 : Afficheur Venting Gas
+ * de 34 à 35 : Boutons du Venting Gas
+ * sur 36 : Buzzer du Venting Gas
+ * sur 37 : Led du Morse Code
+ * de 39 à 44 : Fils du Complicated Wires
+ * de 45 à 50 : Led du Complicated Wires
+ * sur A1 : lien MASTER-SLAVE
+ * sur A2 : lien SLAVE-MASTER
+ * sur A3 : Potentiomètre du Morse Code 
  * A0 : pin libre pour randSeed
  * une entrée 5V pour le poentiometre
  * une sortie GND pour le potentiometre
@@ -20,33 +31,22 @@
 //**********************************************************************************************************************************
 //Données :
 
-/** --Branchements-- */
-//General Setting
-//Simon's Says
-//Keypad
-int kpUpLeft;
-int kpUpRight;
-int kpDownLeft;
-int kpDownRight;
-//Button
-//Wires
-//Venting Gas
-LiquidCrystal vgLcd(7, 8, 9, 10, 11, 12); // initialize the library with the numbers of the interface pins
-int vgOnLed = 4;
-int vgBuzz =5;
-int vgNoButton = 2;
-int vgYesButton = 3;
-
+/** --Modules dans l'ordre du réglage-- */
+/* Simon's Says 
+ * Button
+ * Wires
+ * Keypad
+ * Venting Gas (confirmation)
+ * Morse Code
+ * Complicated Wires
+ * Password
+ * Discharge Capacitor (confirmation)
+ * Master Module (confirmation)
+ */
 
 /** --Données de la configuration de la bombe-- */
 byte modNum;
 byte numReceived;
-int ledSimonSays = 2;
-int ledMaster = 3;
-int ledComplicatedWires = 4;
-int ledPassword = 5;
-int ledWires = 6;
-int ledVentingGas = 7;
 byte nbError = 0; //nombre d'erreurs 
 byte cnfModule = 0; //nombre de modules terminés
 
@@ -57,19 +57,19 @@ int masterUno = A5;
 
 /** --Setting-- */
 boolean setting; //true = réglage en cours //false = démarrage du jeu
-byte setSet[6][4];
-byte modSet = 0;
-byte numSet = 0;
+byte setSet[6][4]; //affichage du réglage : module en cours de réglage/position
+byte modSet = 0; //module en cours de réglage
+byte numSet = 0; //position du chiffre
 
 
 /** --Données Simon's Says-- */
-int simonColorButton[4] = {2,3,4,5};
-int simonColorLed[4] = {8,9,10,11};
-int simonBuzz = 12;
-int simonLed = A2;
-
+byte simonColorButton[4] = {2,3,4,5};
+byte simonColorLed[4] = {8,9,10,11};
+byte simonBuzz = 12;
+byte simonLed = A2;
+//
 byte simonKey[5]; // la séquence des 5 touches, déterminées par random
-
+//
 boolean vowel;
 byte simonColor[3][4];
 byte colorVowel[3][4] = {
@@ -80,26 +80,60 @@ byte colorConsonant[3][4] = {
     3,0,2,1,
     0,2,1,3,
     1,0,3,2};    
- 
+//
 const unsigned int simonNote[4] = {262,330,392,440}; //C4,E4,G4,A5 //Do, Mi, Sol, La
-
+//
 //MODULE terminé ou non
 boolean cnfSimon = false; //true = MODULE s'arrête et trueLEd allumée + envoi signal terminé //false = MODULE continue de fonctionner + envoi signal ERROR
-
-//PHASE de setup, lecture ou jeu
-byte simonPhase =0; //simonPhase = 0 SETUP // simonPhase = 1 Lecture Led // simonPhase = 2 jouer les Led
-
+//
+//PHASE de lecture, de jeu ou terminé
+byte simonPhase =0; // simonPhase = 0 Lecture Led // simonPhase = 1 jouer les Led //simonPhase = 2 Module Terminé
+//
 //Chrono de bascule de la phase 2 à la phase 1
 int simonChrono =0; //
-
+//
 //Nombre de touches actives
 byte nbKey =0; //nombre de touche active // 5 -> cnfSimon = true
-
+//
 //Nombre de touches appuyée pour la sequence
 byte nbTry =0; 
 
+/** --Données Button-- */
+boolean buttonToggle;
+boolean etatButton;
+
+//MODULE terminé ou non
+boolean cnfButton = false; //true = MODULE s'arrête et trueLEd allumée + envoi signal terminé //false = MODULE continue de fonctionner + envoi signal ERROR
+
+/** --Données Wire-- */
+//MODULE terminé ou non
+boolean cnfWire = false; //true = MODULE s'arrête et trueLEd allumée + envoi signal terminé //false = MODULE continue de fonctionner + envoi signal ERROR
+
+/** --Données Keypad-- */
+byte keypadLed;
+byte keypadOrder[4];
+//MODULE terminé ou non
+boolean cnfKeypad = false; //true = MODULE s'arrête et trueLEd allumée + envoi signal terminé //false = MODULE continue de fonctionner + envoi signal ERROR
+//
+//PHASE d'aquisition ou terminé
+byte kpPhase =0; // keypadPhase = 0 attente 1e touche // keypadPhase = 1 attente 2e touche //keypadPhase = 2 attente 3e touche // keypadPhase = 3 attente 4e touche //keypadPhase = 4 module Terminé
+//
+//Etat des boutons du keypad
+boolean kpUpLeft;
+boolean kpUpRight;
+boolean kpDownLeft;
+boolean kpDownRight;
+
+/** --Données Wire-- */
+byte wireCut;
 
 /** --Données Venting Gas-- */
+LiquidCrystal vgLcd(7, 8, 9, 10, 11, 12); // initialize the library with the numbers of the interface pins
+int vgOnLed = 4;
+int vgBuzz =5;
+int vgNoButton = 2;
+int vgYesButton = 3;
+
 byte vgPhase = 0;
 byte vgTimerVtg = 47; //TIMER de 45seconds + 2secondes de ping opérations
 byte vgTimerDsp; //TIMER affiché avec ping pris en compte
@@ -113,6 +147,16 @@ boolean etatVgYesButton; //Pression du bouton YES du module
 boolean vgWarning = true; //true = 1 avertissement avant explosion de la bombe //false = pas d'avertissement
 
 byte vgTimeWarning[6]= {20, 5, 4, 3, 2, 1}; //Double buzz pour rappeller le chrono
+
+
+/** --Données Morse Code-- */
+
+/** --Données Complicated Wires-- */
+
+/** --Données Password-- */
+
+/** --Données Discharge Capacitor-- */
+
 
 //********************************************************************************************************************************************************************************************************************************************************************
 void setup(){
@@ -200,27 +244,27 @@ if (setting){
     break;  
     }
 
-if (modSet == 7){
+if (modSet == 11){
 
 /** --Setting : Simon's Says-- */   
-  if (setSet[1][4] == 1)
+  if (setSet[0][4] == 1)
     vowel = true;
-  else if (setSet[1][4] == 2)
+  else if (setSet[0][4] == 2)
     vowel = false;
-  else if (setSet[1][4] == 0){
-    if (setSet[1][3] == 1)
+  else if (setSet[0][4] == 0){
+    if (setSet[0][3] == 1)
       vowel = true;
-    else if (setSet[1][3] == 2)
+    else if (setSet[0][3] == 2)
       vowel = false;
-  }else if (setSet[1][3] == 0){
-    if (setSet[1][2] == 1)
+  }else if (setSet[0][3] == 0){
+    if (setSet[0][2] == 1)
       vowel = true;
-    else if (setSet[1][2] == 2)
+    else if (setSet[0][2] == 2)
       vowel = false;    
-  }else if (setSet[1][2] == 0){
-    if (setSet[1][1] == 1)
+  }else if (setSet[0][2] == 0){
+    if (setSet[0][1] == 1)
       vowel = true;
-    else if (setSet[1][1] == 2)
+    else if (setSet[0][1] == 2)
       vowel = false;}   
 
 if (vowel){
@@ -228,9 +272,41 @@ simonColor[3][4] = colorVowel[3][4];}
 else {
 simonColor[3][4] = colorConsonant[3][4];}
           
+/** --Setting : Button-- */  
+  if (setSet[0][4] == 1)
+    buttonToggle = true;
+  else if (setSet[0][4] == 2)
+    buttonToggle = false;
+  else if (setSet[0][4] == 0){
+    if (setSet[0][3] == 1)
+      buttonToggle = true;
+    else if (setSet[0][3] == 2)
+      buttonToggle = false;
+  }else if (setSet[0][3] == 0){
+    if (setSet[0][2] == 1)
+      buttonToggle = true;
+    else if (setSet[0][2] == 2)
+      buttonToggle = false;    
+  }else if (setSet[0][2] == 0){
+    if (setSet[0][1] == 1)
+      buttonToggle = true;
+    else if (setSet[0][1] == 2)
+      buttonToggle = false;}  
+
+/** --Setting : Keypad-- */ 
+keypadOrder[0] = setSet[2][0];
+keypadOrder[1] = setSet[2][1];
+keypadOrder[2] = setSet[2][2];
+keypadOrder[3] = setSet[2][3];
+
+/** --Setting : Wires-- */  
+wireCut = setSet[3][0];
+
 setting = false;
-  }
+  } 
 }
+
+//********************************************************************************************************************************************************************************************************************************************************************
   
 if (!setting){
 
@@ -251,22 +327,53 @@ switch (simonPhase) {
   }
 }
 
+/** --BUTTON-- */
+if (!cnfButton){
+//switch (buttonPhase) {
+  
+//  }
+}
+
 /** --KEYPAD-- */
 if (!cnfKeypad){
 switch (kpPhase) {
-  case 0:
+  case 0: //début du module - attente de la 1e touche
+    if (keypadButton()==keypadOrder[0]){
+      kpPhase ++;
+    } else if (keypadButton()!=keypadOrder[0]) {
+      nbError ++;
+    }
   break;
-  case 1:
+  case 1: //1e touche correcte - attente de la 2e touche
+    if (keypadButton()==keypadOrder[1]){
+      kpPhase ++;
+    } else if(keypadButton()!=keypadOrder[1]) {
+      nbError ++;
+      kpPhase =0;
+    }
+    break;
+  case 2: //2e touche correcte - attente de la 3e touche
+    if (keypadButton()==keypadOrder[2]){
+      kpPhase ++;
+    } else if (keypadButton()!=keypadOrder[2]) {
+      nbError ++;
+      kpPhase =0;
+    }
+    break;
+  case 3: //3e touche correcte - attente de la 4e touche
+    if (keypadButton()==keypadOrder[3]){
+      kpPhase ++;
+    } else if (keypadButton()!=keypadOrder[3]) {
+      nbError ++;
+      kpPhase =0;
+    }
+    break;
+  case 4: //4e touche correcte = module complété
+    cnfModule ++;
+    digitalWrite(keypadLed,HIGH);
+    cnfKeypad = true;
   break;
-  case 2:
-  break;
-  case 3:
-  break;
-  case 4:
-  break;
-  case 5:
-  break;
-}
+  }
 }
 
 /** --VENTING GAS-- */
@@ -332,13 +439,13 @@ switch (vgPhase) {
 }
 }
 //********************************************************************************************************************************************************************************************************************************************************************
-void receiveEvent(byte bytesReceived)
+void receiveEvent(byte bytesReceived) //Evenement : bytes reçus par le maître
 {
   numReceived = Wire.read();    // receive byte as an integer
 }
 
 //**********************************************************************************************************************************
-void requestEvent()
+void requestEvent() //Evenement : bytes requis par le maître
 {
   Wire.write(nbError);
 }
